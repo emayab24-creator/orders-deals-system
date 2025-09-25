@@ -1,0 +1,300 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест автоматической обработки</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        #logs { height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; }
+        .status { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Тест системы обработки товаров через ИИ</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Автоматический тест системы</h3>
+            <p>Этот тест проверит:</p>
+            <ul>
+                <li>✅ Авторизацию в системе</li>
+                <li>🤖 Запуск обработки товара "PLC-RPT-24DC/2X21/FG"</li>
+                <li>📊 Отслеживание статуса обработки</li>
+                <li>📋 Получение результатов в таблице</li>
+            </ul>
+        </div>
+
+        <div class="status" id="status">
+            <strong>Статус:</strong> Готов к тестированию
+        </div>
+
+        <div class="test-section">
+            <button class="btn-primary" onclick="runFullTest()">🚀 Запустить полный тест</button>
+            <button class="btn-success" onclick="testLogin()">🔐 Только вход</button>
+            <button class="btn-success" onclick="testProcess()">⚙️ Только обработка</button>
+            <button class="btn-success" onclick="testStatus()">📊 Только статус</button>
+            <button class="btn-danger" onclick="clearLogs()">🧹 Очистить логи</button>
+        </div>
+
+        <div class="test-section">
+            <h4>📝 Логи тестирования:</h4>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let isAuthenticated = false;
+        
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logsDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = `<strong>Статус:</strong> ${message}`;
+        }
+
+        async function testLogin() {
+            log('🔐 Начинаю тест авторизации...');
+            updateStatus('Авторизация...');
+            
+            try {
+                const response = await fetch('/api/auth/signin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@alekri.ru',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                log(`Ответ сервера: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Успешная авторизация! Пользователь: ${data.user.name}`, 'success');
+                    isAuthenticated = true;
+                    updateStatus(`Авторизован как: ${data.user.name} (${data.user.role})`);
+                    return true;
+                } else {
+                    const errorData = await response.text();
+                    log(`Ошибка авторизации: ${response.status} - ${errorData}`, 'error');
+                    updateStatus('Ошибка авторизации');
+                    return false;
+                }
+            } catch (error) {
+                log(`Исключение при авторизации: ${error.message}`, 'error');
+                updateStatus('Ошибка соединения');
+                return false;
+            }
+        }
+
+        async function testProcess() {
+            if (!isAuthenticated) {
+                log('⚠️ Необходима авторизация перед обработкой');
+                return;
+            }
+
+            log('🤖 Запускаю обработку товара "PLC-RPT-24DC/2X21/FG"...');
+            updateStatus('Запуск обработки...');
+
+            try {
+                const response = await fetch('/api/products/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        requests: [{
+                            name: 'PLC-RPT-24DC/2X21/FG',
+                            article: 'PLC-RPT-24DC/2X21/FG'
+                        }]
+                    }),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Обработка запущена! ${data.message} (режим: ${data.mode})`, 'success');
+                    updateStatus('Обработка запущена, отслеживаю статус...');
+                    
+                    // Запускаем мониторинг статуса
+                    monitorProcessing();
+                    return true;
+                } else {
+                    const errorData = await response.text();
+                    log(`Ошибка запуска обработки: ${response.status} - ${errorData}`, 'error');
+                    updateStatus('Ошибка запуска обработки');
+                    return false;
+                }
+            } catch (error) {
+                log(`Исключение при обработке: ${error.message}`, 'error');
+                updateStatus('Ошибка соединения');
+                return false;
+            }
+        }
+
+        async function testStatus() {
+            log('📊 Проверяю статус обработки...');
+            
+            try {
+                const response = await fetch('/api/products/status', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const status = await response.json();
+                    log(`Статус получен:`);
+                    log(`  - Обрабатывается: ${status.isProcessing}`);
+                    log(`  - Прогресс: ${status.progress}%`);
+                    log(`  - Завершено: ${status.completed}`);
+                    log(`  - Общий запросов: ${status.totalRequests}`);
+                    log(`  - Выполнено: ${status.completedRequests}`);
+                    
+                    if (status.currentItem) {
+                        log(`  - Текущий товар: ${status.currentItem.name}`);
+                        log(`  - Текущий шаг: ${status.currentItem.step}`);
+                        log(`  - Детали: ${status.currentItem.details}`);
+                    }
+
+                    if (status.aiDialog && status.aiDialog.isActive) {
+                        log(`  - ИИ активен: ${status.aiDialog.step}`);
+                    }
+
+                    if (status.requests && status.requests.length > 0) {
+                        log(`  - Запросы в очереди: ${status.requests.length}`);
+                        status.requests.forEach((req, i) => {
+                            log(`    ${i+1}. ${req.name}: ${req.status} - ${req.statusText || 'без статуса'}`);
+                        });
+                    }
+
+                    return status;
+                } else {
+                    log(`Ошибка получения статуса: ${response.status}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                log(`Исключение при получении статуса: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        let monitoringInterval;
+        
+        async function monitorProcessing() {
+            let attempts = 0;
+            const maxAttempts = 30; // 5 минут максимум
+            
+            monitoringInterval = setInterval(async () => {
+                attempts++;
+                
+                if (attempts > maxAttempts) {
+                    clearInterval(monitoringInterval);
+                    log('⏰ Превышен лимит времени ожидания', 'error');
+                    updateStatus('Тайм-аут обработки');
+                    return;
+                }
+
+                const status = await testStatus();
+                
+                if (status && status.completed) {
+                    clearInterval(monitoringInterval);
+                    log('🎉 Обработка завершена!', 'success');
+                    updateStatus('Обработка завершена, проверяю результаты...');
+                    
+                    // Проверяем результаты в таблице
+                    setTimeout(checkResults, 2000);
+                }
+            }, 10000); // Проверяем каждые 10 секунд
+        }
+
+        async function checkResults() {
+            log('📋 Проверяю результаты в таблице...');
+            
+            try {
+                const response = await fetch('/api/products', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const products = await response.json();
+                    log(`Найдено товаров в таблице: ${products.length}`);
+                    
+                    // Ищем наш товар
+                    const ourProduct = products.find(p => 
+                        p['Запрос'] && p['Запрос'].includes('PLC-RPT-24DC/2X21/FG')
+                    );
+
+                    if (ourProduct) {
+                        log('✅ Товар найден в таблице!', 'success');
+                        log(`  - Наименование: ${ourProduct['Наименование'] || 'не заполнено'}`);
+                        log(`  - Бренд: ${ourProduct['Бренд'] || 'не заполнено'}`);
+                        log(`  - ТН ВЭД: ${ourProduct['ТН ВЭД'] || 'не заполнено'}`);
+                        log(`  - Страна: ${ourProduct['Страна происхождения'] || 'не заполнено'}`);
+                        updateStatus('✅ Тест успешно завершен!');
+                    } else {
+                        log('❌ Товар НЕ найден в таблице', 'error');
+                        updateStatus('❌ Товар не найден в результатах');
+                    }
+                } else {
+                    log(`Ошибка получения результатов: ${response.status}`, 'error');
+                    updateStatus('Ошибка получения результатов');
+                }
+            } catch (error) {
+                log(`Исключение при проверке результатов: ${error.message}`, 'error');
+                updateStatus('Ошибка проверки результатов');
+            }
+        }
+
+        async function runFullTest() {
+            log('🚀 Запускаю полный тест системы...');
+            clearInterval(monitoringInterval); // Останавливаем предыдущий мониторинг
+            
+            // Шаг 1: Авторизация
+            const loginSuccess = await testLogin();
+            if (!loginSuccess) {
+                log('❌ Тест остановлен из-за ошибки авторизации', 'error');
+                return;
+            }
+
+            // Шаг 2: Запуск обработки
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const processSuccess = await testProcess();
+            if (!processSuccess) {
+                log('❌ Тест остановлен из-за ошибки запуска обработки', 'error');
+                return;
+            }
+
+            log('✅ Полный тест запущен, ожидаю завершения...', 'success');
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+            updateStatus('Логи очищены');
+        }
+
+        // Автозапуск при загрузке страницы
+        window.addEventListener('load', () => {
+            log('🌐 Страница загружена, готов к тестированию');
+            updateStatus('Готов к тестированию');
+        });
+    </script>
+</body>
+</html>

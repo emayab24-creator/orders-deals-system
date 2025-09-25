@@ -1,0 +1,14 @@
+  ▲ Next.js 14.2.28
+  - Local:        http://localhost:3001
+  - Environments: .env.local, .env
+  - Experiments (use with caution):
+    · outputFileTracingRoot
+
+ ✓ Starting...
+ ✓ Ready in 1825ms
+ ✓ Compiled /middleware in 147ms (72 modules)
+[MIDDLEWARE] GET http://localhost:3001/api/sheets/status - BYPASSED
+ ○ Compiling /api/sheets/status ...
+ ✓ Compiled /api/sheets/status in 1477ms (1119 modules)
+ GET /api/sheets/status 200 in 2668ms
+[?25h
